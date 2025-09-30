@@ -1,23 +1,146 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using EVOwnerManagement.API.Services;
+using EVOwnerManagement.API.DTOs;
 
-namespace EVOwnerManagementAPI.Controllers
+namespace EVOwnerManagement.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     public class EVOwnersController : ControllerBase
     {
-        // GET: api/evowners
-        [HttpGet]
-        public IActionResult Get()
-        {
-            // Temporary hardcoded data
-            var owners = new[]
-            {
-                new { NIC = "123456789V", FirstName = "John", LastName = "Doe", Email = "john@example.com", Phone = "1234567890", IsActive = true },
-                new { NIC = "987654321V", FirstName = "Jane", LastName = "Smith", Email = "jane@example.com", Phone = "0987654321", IsActive = false }
-            };
+        private readonly IEVOwnerService _evOwnerService;
 
-            return Ok(owners);
+        public EVOwnersController(IEVOwnerService evOwnerService)
+        {
+            _evOwnerService = evOwnerService;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<List<EVOwnerDto>>> GetAll()
+        {
+            try
+            {
+                var owners = await _evOwnerService.GetAllAsync();
+                return Ok(owners);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("search")]
+        public async Task<ActionResult<List<EVOwnerDto>>> Search([FromQuery] string query)
+        {
+            try
+            {
+                var owners = await _evOwnerService.SearchAsync(query);
+                return Ok(owners);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("{nic}")]
+        public async Task<ActionResult<EVOwnerDto>> GetByNIC(string nic)
+        {
+            try
+            {
+                var owner = await _evOwnerService.GetByNICAsync(nic);
+                if (owner == null)
+                {
+                    return NotFound($"EV Owner with NIC {nic} not found.");
+                }
+                return Ok(owner);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<EVOwnerDto>> Create([FromBody] CreateEVOwnerDto createDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var owner = await _evOwnerService.CreateAsync(createDto);
+                return CreatedAtAction(nameof(GetByNIC), new { nic = owner.NIC }, owner);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPut("{nic}")]
+        public async Task<ActionResult<EVOwnerDto>> Update(string nic, [FromBody] UpdateEVOwnerDto updateDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var owner = await _evOwnerService.UpdateAsync(nic, updateDto);
+                if (owner == null)
+                {
+                    return NotFound($"EV Owner with NIC {nic} not found.");
+                }
+                return Ok(owner);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpDelete("{nic}")]
+        public async Task<ActionResult> Delete(string nic)
+        {
+            try
+            {
+                var result = await _evOwnerService.DeleteAsync(nic);
+                if (!result)
+                {
+                    return NotFound($"EV Owner with NIC {nic} not found.");
+                }
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPatch("{nic}/toggle-active")]
+        public async Task<ActionResult> ToggleActive(string nic)
+        {
+            try
+            {
+                var result = await _evOwnerService.ToggleActiveStatusAsync(nic);
+                if (!result)
+                {
+                    return NotFound($"EV Owner with NIC {nic} not found.");
+                }
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
     }
 }
