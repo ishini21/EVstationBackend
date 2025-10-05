@@ -18,5 +18,6 @@ namespace EVOwnerManagement.API.Data
         }
 
         public IMongoCollection<EVOwner> EVOwners => _database.GetCollection<EVOwner>("EVOwners");
+        public IMongoCollection<User> Users => _database.GetCollection<User>("Users");
     }
 }
