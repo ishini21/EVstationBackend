@@ -1,0 +1,105 @@
+### Complete Mobile Login API Test File
+### This file contains comprehensive test requests for the mobile login functionality
+
+### Test Mobile Login - Station Operator (using email)
+POST https://localhost:7000/api/auth/mobile-login
+Content-Type: application/json
+
+{
+  "identifier": "admin@evstation.com",
+  "password": "password"
+}
+
+### Test Mobile Login - EV Owner (using NIC)
+POST https://localhost:7000/api/auth/mobile-login
+Content-Type: application/json
+
+{
+  "identifier": "123456789012",
+  "password": "evowner123"
+}
+
+### Test Mobile Login - Station Operator with different email
+POST https://localhost:7000/api/auth/mobile-login
+Content-Type: application/json
+
+{
+  "identifier": "operator@station.com",
+  "password": "password123"
+}
+
+### Test Mobile Login - EV Owner with different NIC
+POST https://localhost:7000/api/auth/mobile-login
+Content-Type: application/json
+
+{
+  "identifier": "987654321098",
+  "password": "evowner456"
+}
+
+### Test Mobile Login - Invalid Station Operator credentials
+POST https://localhost:7000/api/auth/mobile-login
+Content-Type: application/json
+
+{
+  "identifier": "invalid@email.com",
+  "password": "wrongpassword"
+}
+
+### Test Mobile Login - Invalid EV Owner credentials
+POST https://localhost:7000/api/auth/mobile-login
+Content-Type: application/json
+
+{
+  "identifier": "999999999999",
+  "password": "wrongpassword"
+}
+
+### Test Mobile Login - Missing identifier
+POST https://localhost:7000/api/auth/mobile-login
+Content-Type: application/json
+
+{
+  "password": "password"
+}
+
+### Test Mobile Login - Missing password
+POST https://localhost:7000/api/auth/mobile-login
+Content-Type: application/json
+
+{
+  "identifier": "admin@evstation.com"
+}
+
+### Test Mobile Login - Empty request body
+POST https://localhost:7000/api/auth/mobile-login
+Content-Type: application/json
+
+{}
+
+### Test Mobile Login - Invalid JSON format
+POST https://localhost:7000/api/auth/mobile-login
+Content-Type: application/json
+
+{
+  "identifier": "admin@evstation.com"
+  "password": "password"
+}
+
+### Test Mobile Login - Station Operator with NIC (should fail)
+POST https://localhost:7000/api/auth/mobile-login
+Content-Type: application/json
+
+{
+  "identifier": "123456789012",
+  "password": "password"
+}
+
+### Test Mobile Login - EV Owner with email (should fail)
+POST https://localhost:7000/api/auth/mobile-login
+Content-Type: application/json
+
+{
+  "identifier": "admin@evstation.com",
+  "password": "evowner123"
+}

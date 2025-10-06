@@ -29,7 +29,7 @@ Content-Type: application/json
 ### User Management Endpoints (Backoffice Only)
 ### ====================================
 
-### 3. Get All Users
+### 3. Get All Users (includes lastLogin field)
 GET {{baseUrl}}/api/users
 Authorization: Bearer {{token}}
 
@@ -82,7 +82,7 @@ Content-Type: application/json
   "role": 99
 }
 
-### 8. Update User
+### 8. Update User (Basic Info Only - No Password Required)
 @updateUserId = 67012abc123456789
 PUT {{baseUrl}}/api/users/{{updateUserId}}
 Authorization: Bearer {{token}}
@@ -92,10 +92,11 @@ Content-Type: application/json
   "firstName": "John",
   "lastName": "UpdatedOperator",
   "email": "operator1_new@evstation.com",
-  "phoneNumber": "+94771111111"
+  "phoneNumber": "+94771111111",
+  "role": 1
 }
 
-### 9. Update User Password Only
+### 9. Update User Password (Optional in main update)
 @passwordUserId = 67012abc123456789
 PUT {{baseUrl}}/api/users/{{passwordUserId}}
 Authorization: Bearer {{token}}
@@ -105,7 +106,7 @@ Content-Type: application/json
   "password": "newpassword123"
 }
 
-### 10. Update User Role (0=Backoffice, 1=StationOperator)
+### 10. Update User Role Only (0=Backoffice, 1=StationOperator)
 @roleUserId = 67012abc123456789
 PUT {{baseUrl}}/api/users/{{roleUserId}}
 Authorization: Bearer {{token}}
@@ -125,18 +126,28 @@ Authorization: Bearer {{token}}
 PATCH {{baseUrl}}/api/users/{{reactivateUserId}}/reactivate
 Authorization: Bearer {{token}}
 
+### 13. Reset User Password
+@resetPasswordUserId = 67012abc123456789
+PATCH {{baseUrl}}/api/users/{{resetPasswordUserId}}/reset-password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "newPassword": "newresetpassword123"
+}
+
 ### ====================================
 ### Error Cases
 ### ====================================
 
-### 13. Access Protected Endpoint Without Token (should fail with 401)
+### 14. Access Protected Endpoint Without Token (should fail with 401)
 GET {{baseUrl}}/api/users
 
-### 14. Access Protected Endpoint With Invalid Token (should fail with 401)
+### 15. Access Protected Endpoint With Invalid Token (should fail with 401)
 GET {{baseUrl}}/api/users
 Authorization: Bearer invalid_token_here
 
-### 15. Create User with Duplicate Email (should fail with 409)
+### 16. Create User with Duplicate Email (should fail with 409)
 POST {{baseUrl}}/api/users
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -150,8 +161,22 @@ Content-Type: application/json
   "role": 1
 }
 
-### 16. Get Non-Existent User (should fail with 404)
+### 17. Get Non-Existent User (should fail with 404)
 GET {{baseUrl}}/api/users/000000000000000000000000
+Authorization: Bearer {{token}}
+
+### 18. Test LastLogin Update - Login and Check User
+# First login to update lastLogin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@evstation.com",
+  "password": "password"
+}
+
+# Then get user to see updated lastLogin
+GET {{baseUrl}}/api/users
 Authorization: Bearer {{token}}
 
 ### ====================================

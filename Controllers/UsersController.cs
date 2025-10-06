@@ -93,10 +93,11 @@ namespace EVOwnerManagement.API.Controllers
         }
 
         /// <summary>
-        /// Update user information (Backoffice only)
+        /// Update user basic information (Backoffice only) - Name, Email, Phone, Role
+        /// Password is optional - only updated if provided
         /// </summary>
         /// <param name="id">User ID</param>
-        /// <param name="updateDto">User update data</param>
+        /// <param name="updateDto">User update data (password optional)</param>
         /// <returns>Updated user information</returns>
         [HttpPut("{id}")]
         public async Task<ActionResult<UserDto>> Update(string id, [FromBody] UpdateUserDto updateDto)
@@ -120,6 +121,37 @@ namespace EVOwnerManagement.API.Controllers
             catch (InvalidOperationException ex)
             {
                 return Conflict(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// Reset user password (Backoffice only)
+        /// </summary>
+        /// <param name="id">User ID</param>
+        /// <param name="resetPasswordDto">New password data</param>
+        /// <returns>Success message</returns>
+        [HttpPatch("{id}/reset-password")]
+        public async Task<ActionResult> ResetPassword(string id, [FromBody] ResetPasswordDto resetPasswordDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var result = await _userService.ResetPasswordAsync(id, resetPasswordDto.NewPassword);
+                
+                if (!result)
+                {
+                    return NotFound(new { message = $"User with ID {id} not found." });
+                }
+
+                return Ok(new { message = "Password reset successfully." });
             }
             catch (Exception ex)
             {
