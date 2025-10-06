@@ -59,6 +59,8 @@ namespace EVOwnerManagement.API.Services
                 LastName = createDto.LastName,
                 Email = createDto.Email,
                 Phone = createDto.Phone,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(createDto.Password),
+                Role = "EVOwner", // Always set to EVOwner for EV owners
                 IsActive = createDto.IsActive,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -76,8 +78,15 @@ namespace EVOwnerManagement.API.Services
                 .Set(o => o.LastName, updateDto.LastName)
                 .Set(o => o.Email, updateDto.Email)
                 .Set(o => o.Phone, updateDto.Phone)
+                .Set(o => o.Role, "EVOwner") // Always keep as EVOwner
                 .Set(o => o.IsActive, updateDto.IsActive)
                 .Set(o => o.UpdatedAt, DateTime.UtcNow);
+
+            // Only update password if provided
+            if (!string.IsNullOrEmpty(updateDto.Password))
+            {
+                update = update.Set(o => o.PasswordHash, BCrypt.Net.BCrypt.HashPassword(updateDto.Password));
+            }
 
             var options = new FindOneAndUpdateOptions<EVOwner>
             {
@@ -136,6 +145,25 @@ namespace EVOwnerManagement.API.Services
             return owners.Select(MapToDto).ToList();
         }
 
+        public async Task<EVOwnerDto?> LoginAsync(string nic, string password)
+        {
+            var owner = await _context.EVOwners
+                .Find(o => o.NIC == nic)
+                .FirstOrDefaultAsync();
+
+            if (owner == null || !owner.IsActive)
+            {
+                return null;
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(password, owner.PasswordHash))
+            {
+                return null;
+            }
+
+            return MapToDto(owner);
+        }
+
         private static EVOwnerDto MapToDto(EVOwner owner)
         {
             return new EVOwnerDto
@@ -146,6 +174,7 @@ namespace EVOwnerManagement.API.Services
                 LastName = owner.LastName,
                 Email = owner.Email,
                 Phone = owner.Phone,
+                Role = owner.Role,
                 IsActive = owner.IsActive,
                 CreatedAt = owner.CreatedAt,
                 UpdatedAt = owner.UpdatedAt

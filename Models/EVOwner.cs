@@ -24,6 +24,12 @@ namespace EVOwnerManagement.API.Models
         [BsonElement("phone")]
         public string Phone { get; set; } = string.Empty;
 
+        [BsonElement("passwordHash")]
+        public string PasswordHash { get; set; } = string.Empty;
+
+        [BsonElement("role")]
+        public string Role { get; set; } = "EVOwner";
+
         [BsonElement("isActive")]
         public bool IsActive { get; set; } = true;
 
