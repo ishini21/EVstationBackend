@@ -128,8 +128,9 @@ namespace EVOwnerManagement.API.Services
             updateDefinitions.Add(Builders<User>.Update.Set(u => u.UpdatedAt, DateTime.UtcNow));
 
             var combinedUpdate = Builders<User>.Update.Combine(updateDefinitions);
+            var filter = Builders<User>.Filter.Eq(u => u.Id, id);
             var result = await _context.Users.FindOneAndUpdateAsync<User>(
-                u => u.Id == id,
+                filter,
                 combinedUpdate,
                 new FindOneAndUpdateOptions<User, User> { ReturnDocument = ReturnDocument.After }
             );
