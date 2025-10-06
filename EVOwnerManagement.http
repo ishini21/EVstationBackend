@@ -1,0 +1,73 @@
+### EV Owner Management API Tests
+
+### 1. Login as Backoffice User (for admin operations)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@evstation.com",
+  "password": "Admin123!"
+}
+
+### 2. Create EV Owner (Backoffice only)
+POST {{baseUrl}}/api/evowners
+Authorization: Bearer {{backofficeToken}}
+Content-Type: application/json
+
+{
+  "nic": "123456789V",
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john.doe@example.com",
+  "phone": "+94771234567",
+  "password": "EVOwner123!",
+  "isActive": true
+}
+
+### 3. Get All EV Owners (Backoffice only)
+GET {{baseUrl}}/api/evowners
+Authorization: Bearer {{backofficeToken}}
+
+### 4. Get EV Owner by NIC (Backoffice only)
+GET {{baseUrl}}/api/evowners/123456789V
+Authorization: Bearer {{backofficeToken}}
+
+### 5. Search EV Owners (Backoffice only)
+GET {{baseUrl}}/api/evowners/search?query=John
+Authorization: Bearer {{backofficeToken}}
+
+### 6. Update EV Owner (Backoffice only)
+PUT {{baseUrl}}/api/evowners/123456789V
+Authorization: Bearer {{backofficeToken}}
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john.doe.updated@example.com",
+  "phone": "+94771234567",
+  "password": "NewPassword123!",
+  "isActive": true
+}
+
+### 7. Toggle EV Owner Active Status (Backoffice only)
+PATCH {{baseUrl}}/api/evowners/123456789V/toggle-active
+Authorization: Bearer {{backofficeToken}}
+
+### 8. EV Owner Login (Mobile App)
+POST {{baseUrl}}/api/auth/evowner-login
+Content-Type: application/json
+
+{
+  "nic": "123456789V",
+  "password": "EVOwner123!"
+}
+
+### 9. Delete EV Owner (Backoffice only)
+DELETE {{baseUrl}}/api/evowners/123456789V
+Authorization: Bearer {{backofficeToken}}
+
+### Variables
+@baseUrl = https://localhost:7000
+@backofficeToken = YOUR_BACKOFFICE_JWT_TOKEN_HERE
+@evOwnerToken = YOUR_EV_OWNER_JWT_TOKEN_HERE

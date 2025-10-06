@@ -5,6 +5,10 @@ using EVOwnerManagement.API.Services;
 using EVOwnerManagement.API.Data;
 using EVOwnerManagement.API.Models;
 using MongoDB.Driver;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
 
 namespace EVOwnerManagement.API.Controllers
 {
@@ -14,13 +18,18 @@ namespace EVOwnerManagement.API.Controllers
     {
         private readonly IAuthService _authService;
         private readonly IMobileAuthService _mobileAuthService;
+        private readonly IEVOwnerService _evOwnerService;
         private readonly MongoDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public AuthController(IAuthService authService, IMobileAuthService mobileAuthService, MongoDbContext context)
+
+        public AuthController(IAuthService authService, IEVOwnerService evOwnerService, MongoDbContext context, IConfiguration configuration , IMobileAuthService mobileAuthService)
         {
             _authService = authService;
             _mobileAuthService = mobileAuthService;
+            _evOwnerService = evOwnerService;
             _context = context;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -140,6 +149,89 @@ namespace EVOwnerManagement.API.Controllers
             {
                 return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
             }
+        }
+
+        /// <summary>
+        /// Login endpoint for EV Owners (Mobile App)
+        /// </summary>
+        /// <param name="loginDto">EV Owner login credentials (NIC and Password)</param>
+        /// <returns>JWT token and EV Owner information</returns>
+        [HttpPost("evowner-login")]
+        public async Task<ActionResult> EVOwnerLogin([FromBody] EVOwnerLoginDto loginDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var owner = await _evOwnerService.LoginAsync(loginDto.NIC, loginDto.Password);
+                
+                if (owner == null)
+                {
+                    return Unauthorized(new { message = "Invalid NIC or password" });
+                }
+
+                // Generate JWT token for EV Owner
+                var token = GenerateEVOwnerJwtToken(owner.Id, owner.NIC);
+                var expiresAt = DateTime.UtcNow.AddHours(
+                    double.Parse(_configuration["Jwt:ExpirationHours"] ?? "24")
+                );
+
+                var response = new
+                {
+                    token = token,
+                    owner = new
+                    {
+                        id = owner.Id,
+                        nic = owner.NIC,
+                        firstName = owner.FirstName,
+                        lastName = owner.LastName,
+                        email = owner.Email,
+                        phone = owner.Phone,
+                        isActive = owner.IsActive
+                    },
+                    expiresAt = expiresAt
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+            }
+        }
+
+        private string GenerateEVOwnerJwtToken(string ownerId, string nic)
+        {
+            var jwtSettings = _configuration.GetSection("Jwt");
+            var secret = jwtSettings["Secret"] ?? throw new InvalidOperationException("JWT Secret is not configured");
+            var issuer = jwtSettings["Issuer"] ?? "EVStationBackend";
+            var audience = jwtSettings["Audience"] ?? "EVStationFrontend";
+            var expirationHours = double.Parse(jwtSettings["ExpirationHours"] ?? "24");
+
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, ownerId),
+                new Claim(JwtRegisteredClaimNames.UniqueName, nic),
+                new Claim(ClaimTypes.Role, "EVOwner"),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString())
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: issuer,
+                audience: audience,
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(expirationHours),
+                signingCredentials: credentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }
