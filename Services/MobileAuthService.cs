@@ -38,6 +38,9 @@ namespace EVOwnerManagement.API.Services
                 // Verify password
                 if (BCrypt.Net.BCrypt.Verify(mobileLoginDto.Password, user.PasswordHash))
                 {
+                    // Update last login time
+                    await UpdateLastLoginAsync(user.Id);
+
                     // Generate JWT token
                     var token = GenerateJwtToken(user.Id, user.Email, user.Role);
                     var expiresAt = DateTime.UtcNow.AddHours(
@@ -58,11 +61,6 @@ namespace EVOwnerManagement.API.Services
                 }
             }
 
-            // TODO: EV Owner authentication - to be implemented by another teammate
-            // EV Owner password authentication is handled by a different team member
-            // This section will be uncommented once the EVOwner model includes password authentication
-            
-            /*
             // Try to authenticate as EVOwner
             var evOwner = await _context.EVOwners
                 .Find(e => e.NIC == mobileLoginDto.Identifier)
@@ -98,7 +96,6 @@ namespace EVOwnerManagement.API.Services
                     };
                 }
             }
-            */
 
             return null; // Authentication failed
         }
@@ -132,6 +129,16 @@ namespace EVOwnerManagement.API.Services
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private async Task UpdateLastLoginAsync(string userId)
+        {
+            var filter = Builders<User>.Filter.Eq(u => u.Id, userId);
+            var update = Builders<User>.Update
+                .Set(u => u.LastLogin, DateTime.UtcNow)
+                .Set(u => u.UpdatedAt, DateTime.UtcNow);
+
+            await _context.Users.UpdateOneAsync(filter, update);
         }
     }
 }

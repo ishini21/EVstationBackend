@@ -10,6 +10,7 @@ namespace EVOwnerManagement.API.Services
         Task<UserDto?> UpdateAsync(string id, UpdateUserDto updateDto);
         Task<bool> DeactivateAsync(string id);
         Task<bool> ReactivateAsync(string id);
+        Task<bool> ResetPasswordAsync(string id, string newPassword);
     }
 }
 

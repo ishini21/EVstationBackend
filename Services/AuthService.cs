@@ -44,6 +44,9 @@ namespace EVOwnerManagement.API.Services
                 return null;
             }
 
+            // Update last login time
+            await UpdateLastLoginAsync(user.Id);
+
             // Generate JWT token
             var token = GenerateJwtToken(user.Id, user.Email, user.Role);
             var expiresAt = DateTime.UtcNow.AddHours(
@@ -90,6 +93,16 @@ namespace EVOwnerManagement.API.Services
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private async Task UpdateLastLoginAsync(string userId)
+        {
+            var filter = Builders<User>.Filter.Eq(u => u.Id, userId);
+            var update = Builders<User>.Update
+                .Set(u => u.LastLogin, DateTime.UtcNow)
+                .Set(u => u.UpdatedAt, DateTime.UtcNow);
+
+            await _context.Users.UpdateOneAsync(filter, update);
         }
     }
 }

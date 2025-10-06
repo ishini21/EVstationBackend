@@ -158,6 +158,19 @@ namespace EVOwnerManagement.API.Services
             return result.ModifiedCount > 0;
         }
 
+        public async Task<bool> ResetPasswordAsync(string id, string newPassword)
+        {
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            
+            var filter = Builders<User>.Filter.Eq(u => u.Id, id);
+            var update = Builders<User>.Update
+                .Set(u => u.PasswordHash, passwordHash)
+                .Set(u => u.UpdatedAt, DateTime.UtcNow);
+
+            var result = await _context.Users.UpdateOneAsync(filter, update);
+            return result.ModifiedCount > 0;
+        }
+
         private static UserDto MapToDto(User user)
         {
             return new UserDto
@@ -172,7 +185,8 @@ namespace EVOwnerManagement.API.Services
                 Status = user.Status.ToString(),
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt,
-                ProfileImage = user.ProfileImage
+                ProfileImage = user.ProfileImage,
+                LastLogin = user.LastLogin
             };
         }
     }

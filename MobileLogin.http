@@ -10,15 +10,14 @@ Content-Type: application/json
   "password": "password"
 }
 
-### Test Mobile Login - EV Owner (using NIC) - TEMPORARILY DISABLED
-# This test is commented out as EV Owner authentication is handled by another team member
-# POST https://localhost:7000/api/auth/mobile-login
-# Content-Type: application/json
-# 
-# {
-#   "identifier": "123456789V",
-#   "password": "evowner123"
-# }
+### Test Mobile Login - EV Owner (using NIC)
+POST https://localhost:7000/api/auth/mobile-login
+Content-Type: application/json
+
+{
+  "identifier": "123456789012",
+  "password": "evowner123"
+}
 
 ### Test Mobile Login - Invalid credentials
 POST https://localhost:7000/api/auth/mobile-login

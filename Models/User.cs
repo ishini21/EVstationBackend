@@ -43,6 +43,9 @@ namespace EVOwnerManagement.API.Models
 
         [BsonElement("profileImage")]
         public string? ProfileImage { get; set; }
+
+        [BsonElement("lastLogin")]
+        public DateTime? LastLogin { get; set; }
     }
 }
 

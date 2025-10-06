@@ -22,7 +22,7 @@ namespace EVOwnerManagement.API.DTOs
         public string? Address { get; set; }
 
         [StringLength(100, MinimumLength = 6, ErrorMessage = "Password must be at least 6 characters")]
-        public string? Password { get; set; }
+        public string? Password { get; set; } // Optional - only updated if provided
 
         public UserRole? Role { get; set; }
 
