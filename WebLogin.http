@@ -1,0 +1,63 @@
+### Web Login API Test File
+### This file contains test requests for the web login functionality (Backoffice users only)
+
+### Test Web Login - Backoffice User (Should Succeed)
+POST https://localhost:7000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@evstation.com",
+  "password": "password"
+}
+
+### Test Web Login - Station Operator (Should Succeed)
+POST https://localhost:7000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "operator@station.com",
+  "password": "password"
+}
+
+### Test Web Login - Invalid Email (Should Fail)
+POST https://localhost:7000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "invalid@email.com",
+  "password": "password"
+}
+
+### Test Web Login - Invalid Password (Should Fail)
+POST https://localhost:7000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@evstation.com",
+  "password": "wrongpassword"
+}
+
+### Test Web Login - Missing Email (Should Fail with Validation Error)
+POST https://localhost:7000/api/auth/login
+Content-Type: application/json
+
+{
+  "password": "password"
+}
+
+### Test Web Login - Missing Password (Should Fail with Validation Error)
+POST https://localhost:7000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@evstation.com"
+}
+
+### Test Web Login - Invalid Email Format (Should Fail with Validation Error)
+POST https://localhost:7000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "invalid-email-format",
+  "password": "password"
+}

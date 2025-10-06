@@ -13,11 +13,13 @@ namespace EVOwnerManagement.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IMobileAuthService _mobileAuthService;
         private readonly MongoDbContext _context;
 
-        public AuthController(IAuthService authService, MongoDbContext context)
+        public AuthController(IAuthService authService, IMobileAuthService mobileAuthService, MongoDbContext context)
         {
             _authService = authService;
+            _mobileAuthService = mobileAuthService;
             _context = context;
         }
 
@@ -73,7 +75,7 @@ namespace EVOwnerManagement.API.Controllers
         }
 
         /// <summary>
-        /// Login endpoint for all users (Backoffice and StationOperator)
+        /// Login endpoint for web users (Backoffice and StationOperator)
         /// </summary>
         /// <param name="loginDto">Login credentials</param>
         /// <returns>JWT token and user information</returns>
@@ -92,6 +94,40 @@ namespace EVOwnerManagement.API.Controllers
                 if (response == null)
                 {
                     return Unauthorized(new { message = "Invalid email or password" });
+                }
+
+                return Ok(response);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// Mobile login endpoint for both Station Operators and EV Owners
+        /// </summary>
+        /// <param name="mobileLoginDto">Mobile login credentials (email or NIC + password)</param>
+        /// <returns>JWT token and user information with role for UI routing</returns>
+        [HttpPost("mobile-login")]
+        public async Task<ActionResult<MobileLoginResponseDto>> MobileLogin([FromBody] MobileLoginDto mobileLoginDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var response = await _mobileAuthService.MobileLoginAsync(mobileLoginDto);
+                
+                if (response == null)
+                {
+                    return Unauthorized(new { message = "Invalid credentials. Please check your email/NIC and password." });
                 }
 
                 return Ok(response);

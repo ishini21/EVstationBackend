@@ -80,6 +80,7 @@ builder.Services.AddSingleton<MongoDbContext>();
 // Register services
 builder.Services.AddScoped<IEVOwnerService, EVOwnerService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IMobileAuthService, MobileAuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<SeedDataService>();
 

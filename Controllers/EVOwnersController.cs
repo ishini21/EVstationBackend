@@ -1,11 +1,17 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using EVOwnerManagement.API.Services;
 using EVOwnerManagement.API.DTOs;
 
 namespace EVOwnerManagement.API.Controllers
 {
+    /// <summary>
+    /// EV Owner Management Controller - BACKOFFICE ONLY
+    /// Handles EV owner CRUD operations, only accessible by Backoffice users
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Backoffice")]
     public class EVOwnersController : ControllerBase
     {
         private readonly IEVOwnerService _evOwnerService;
