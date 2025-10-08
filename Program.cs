@@ -8,7 +8,12 @@ using EVOwnerManagement.API.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
+
 builder.Services.AddEndpointsApiExplorer();
 
 // Configure Swagger with JWT support
@@ -98,15 +103,13 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Always enable Swagger, even in Production
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "EV Owner Management API v1");
-        c.RoutePrefix = "swagger"; // Explicitly set Swagger route
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "EV Station Management API v1");
+    c.RoutePrefix = "swagger";
+});
 
 app.UseCors("AllowReactApp");
 app.UseHttpsRedirection();
