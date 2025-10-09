@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RazorLangVersion>9.0</RazorLangVersion>
+    <NoWarn>$(NoWarn);CS8618;CS8604</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

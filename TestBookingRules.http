@@ -1,0 +1,239 @@
+### Test Booking Management Business Rules
+### This file contains HTTP requests to test all business rules and endpoints
+
+@baseUrl = http://localhost:5000/api
+@adminToken = 
+@operatorToken = 
+
+### 1. Login as Admin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@evstation.com",
+  "password": "password"
+}
+
+> {%
+client.global.set("adminToken", response.body.token);
+%}
+
+### 2. Login as Station Operator
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "operator@evstation.com",
+  "password": "password"
+}
+
+> {%
+client.global.set("operatorToken", response.body.token);
+%}
+
+### 3. Get All Stations
+GET {{baseUrl}}/stations
+Authorization: Bearer {{adminToken}}
+
+### 4. Get Available Slots for Tomorrow
+GET {{baseUrl}}/bookings/available-slots?stationId=507f1f77bcf86cd799439011&startTime=2025-01-02T10:00:00Z&endTime=2025-01-02T12:00:00Z
+Authorization: Bearer {{adminToken}}
+
+### 5. Test Valid Booking Creation (within 7 days)
+POST {{baseUrl}}/bookings
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "customerNic": "199912345678",
+  "customerName": "Test Customer",
+  "customerEmail": "test@example.com",
+  "customerPhone": "+94771234567",
+  "stationId": "507f1f77bcf86cd799439011",
+  "slotId": "507f1f77bcf86cd799439012",
+  "reservationStartTime": "2025-01-02T10:00:00Z",
+  "durationMinutes": 120,
+  "estimatedKWh": 2.0,
+  "notes": "Test booking within 7 days"
+}
+
+### 6. Test Invalid Booking Creation (outside 7 days) - Should fail
+POST {{baseUrl}}/bookings
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "customerNic": "199912345679",
+  "customerName": "Test Customer 2",
+  "customerEmail": "test2@example.com",
+  "customerPhone": "+94771234568",
+  "stationId": "507f1f77bcf86cd799439011",
+  "slotId": "507f1f77bcf86cd799439012",
+  "reservationStartTime": "2025-01-15T10:00:00Z",
+  "durationMinutes": 120,
+  "estimatedKWh": 2.0,
+  "notes": "Test booking outside 7 days - should fail"
+}
+
+### 7. Test Invalid Booking Creation (past time) - Should fail
+POST {{baseUrl}}/bookings
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "customerNic": "199912345680",
+  "customerName": "Test Customer 3",
+  "customerEmail": "test3@example.com",
+  "customerPhone": "+94771234569",
+  "stationId": "507f1f77bcf86cd799439011",
+  "slotId": "507f1f77bcf86cd799439012",
+  "reservationStartTime": "2024-12-01T10:00:00Z",
+  "durationMinutes": 120,
+  "estimatedKWh": 2.0,
+  "notes": "Test booking in past - should fail"
+}
+
+### 8. Get All Bookings
+GET {{baseUrl}}/bookings?page=1&pageSize=10
+Authorization: Bearer {{adminToken}}
+
+### 9. Get Bookings by Status
+GET {{baseUrl}}/bookings?status=Confirmed&page=1&pageSize=10
+Authorization: Bearer {{adminToken}}
+
+### 10. Test Booking Update (valid - 12+ hours ahead)
+PUT {{baseUrl}}/bookings/{{bookingId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "customerNic": "199912345678",
+  "customerName": "Test Customer Updated",
+  "customerEmail": "test.updated@example.com",
+  "customerPhone": "+94771234567",
+  "reservationStartTime": "2025-01-02T11:00:00Z",
+  "durationMinutes": 90,
+  "estimatedKWh": 1.5,
+  "notes": "Updated booking details"
+}
+
+### 11. Test Booking Update (invalid - <12 hours ahead) - Should fail
+PUT {{baseUrl}}/bookings/{{bookingId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "customerNic": "199912345678",
+  "customerName": "Test Customer",
+  "customerEmail": "test@example.com",
+  "customerPhone": "+94771234567",
+  "reservationStartTime": "2025-01-01T23:00:00Z",
+  "durationMinutes": 120,
+  "estimatedKWh": 2.0,
+  "notes": "Update attempt <12 hours - should fail"
+}
+
+### 12. Test Booking Cancellation (valid - 12+ hours ahead)
+POST {{baseUrl}}/bookings/{{bookingId}}/cancel
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "reason": "Customer requested cancellation"
+}
+
+### 13. Test Booking Cancellation (invalid - <12 hours ahead) - Should fail
+POST {{baseUrl}}/bookings/{{bookingId}}/cancel
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "reason": "Cancellation attempt <12 hours - should fail"
+}
+
+### 14. Test Role-Based Access - Station Operator
+GET {{baseUrl}}/bookings?page=1&pageSize=10
+Authorization: Bearer {{operatorToken}}
+
+### 15. Test Slot Availability Check
+GET {{baseUrl}}/bookings/available-slots?stationId=507f1f77bcf86cd799439011&startTime=2025-01-02T10:00:00Z&endTime=2025-01-02T12:00:00Z
+Authorization: Bearer {{adminToken}}
+
+### 16. Test Booking Validation
+POST {{baseUrl}}/bookings/validate
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "customerNic": "199912345678",
+  "customerName": "Test Customer",
+  "customerEmail": "test@example.com",
+  "customerPhone": "+94771234567",
+  "stationId": "507f1f77bcf86cd799439011",
+  "slotId": "507f1f77bcf86cd799439012",
+  "reservationStartTime": "2025-01-02T10:00:00Z",
+  "durationMinutes": 120,
+  "estimatedKWh": 2.0,
+  "notes": "Validation test"
+}
+
+### 17. Test Double Booking Prevention - Should fail
+POST {{baseUrl}}/bookings
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "customerNic": "199912345681",
+  "customerName": "Test Customer 4",
+  "customerEmail": "test4@example.com",
+  "customerPhone": "+94771234570",
+  "stationId": "507f1f77bcf86cd799439011",
+  "slotId": "507f1f77bcf86cd799439012",
+  "reservationStartTime": "2025-01-02T10:00:00Z",
+  "durationMinutes": 120,
+  "estimatedKWh": 2.0,
+  "notes": "Double booking attempt - should fail"
+}
+
+### 18. Test Invalid Station ID - Should fail
+POST {{baseUrl}}/bookings
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "customerNic": "199912345682",
+  "customerName": "Test Customer 5",
+  "customerEmail": "test5@example.com",
+  "customerPhone": "+94771234571",
+  "stationId": "invalid-station-id",
+  "slotId": "507f1f77bcf86cd799439012",
+  "reservationStartTime": "2025-01-02T10:00:00Z",
+  "durationMinutes": 120,
+  "estimatedKWh": 2.0,
+  "notes": "Invalid station ID - should fail"
+}
+
+### 19. Test Invalid Slot ID - Should fail
+POST {{baseUrl}}/bookings
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "customerNic": "199912345683",
+  "customerName": "Test Customer 6",
+  "customerEmail": "test6@example.com",
+  "customerPhone": "+94771234572",
+  "stationId": "507f1f77bcf86cd799439011",
+  "slotId": "invalid-slot-id",
+  "reservationStartTime": "2025-01-02T10:00:00Z",
+  "durationMinutes": 120,
+  "estimatedKWh": 2.0,
+  "notes": "Invalid slot ID - should fail"
+}
+
+### 20. Test Unauthorized Access - Should fail
+GET {{baseUrl}}/bookings
+Authorization: Bearer invalid-token
+
+### 21. Test Missing Authentication - Should fail
+GET {{baseUrl}}/bookings
