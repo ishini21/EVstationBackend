@@ -16,13 +16,13 @@ namespace EVOwnerManagement.API.Controllers
     {
         private readonly IMongoCollection<Station> _stations;
         private readonly IMongoCollection<Slot> _slots;
-        private readonly IMongoCollection<Operator> _operators;
+        private readonly IMongoCollection<User> _users;
 
         public StationsController(MongoDbContext context)
         {
             _stations = context.Stations;
             _slots = context.Slots;
-            _operators = context.Operators;
+            _users= context.Users;
         }
 
         //  POST - Create a new station
@@ -30,8 +30,8 @@ namespace EVOwnerManagement.API.Controllers
         public async Task<IActionResult> CreateStation([FromBody] CreateStationDto dto)
         {
             // Validate Operators
-            if (dto.Operators == null || dto.Operators.Count < 1)
-                return BadRequest("At least one operator must be created for this station.");
+            if (dto.OperatorIds == null || dto.OperatorIds.Count < 1)
+                return BadRequest("At least one operator must be selected for this station.");
 
             // Validate Slot Groups
             if (dto.SlotGroups == null || dto.SlotGroups.Count < 1)
@@ -54,7 +54,18 @@ namespace EVOwnerManagement.API.Controllers
                 }
             }
 
-            // Create station object
+            // Validate operator IDs exist and are active station operators
+            var validOperators = await _users
+                .Find(u => dto.OperatorIds.Contains(u.Id) &&
+                           u.Role == UserRole.StationOperator &&
+                           u.Status == UserStatus.Active)
+                .ToListAsync();
+
+            if (validOperators.Count != dto.OperatorIds.Count)
+                return BadRequest("Some operator IDs are invalid or not active station operators.");
+
+
+            // Create the station document
             var station = new Station
             {
                 Id = ObjectId.GenerateNewId(),
@@ -66,6 +77,7 @@ namespace EVOwnerManagement.API.Controllers
                 PhoneNumber = dto.PhoneNumber,
                 OperatingHours = dto.OperatingHours,
                 Status = dto.Status,
+                OperatorIds = dto.OperatorIds,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -98,24 +110,13 @@ namespace EVOwnerManagement.API.Controllers
 
             await _slots.InsertManyAsync(slots);
 
-            // Create operator accounts
-            var operators = dto.Operators.Select(op => new Operator
-            {
-                Id = ObjectId.GenerateNewId(),
-                StationId = station.Id,
-                Name = op.Name,
-                Email = op.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(op.Password)
-            }).ToList();
-
-            await _operators.InsertManyAsync(operators);
 
             return Ok(new
             {
                 message = "Station created successfully",
                 stationId = station.Id.ToString(),
                 slotsCreated = slots.Count,
-                operatorsCreated = operators.Count
+                operatorCount = validOperators.Count
             });
         }
 
@@ -153,7 +154,21 @@ namespace EVOwnerManagement.API.Controllers
                 return NotFound("Station not found.");
 
             var slots = await _slots.Find(sl => sl.StationId == objectId).ToListAsync();
-            var operators = await _operators.Find(op => op.StationId == objectId).ToListAsync();
+
+            // Fetch full operator details
+            var operatorDetails = await _users
+                .Find(u => station.OperatorIds.Contains(u.Id))
+                .Project(u => new
+                {
+                    id = u.Id,
+                    firstName = u.FirstName,
+                    lastName = u.LastName,
+                    u.Email,
+                    u.PhoneNumber,
+                    u.Status,
+                    u.ProfileImage
+                })
+                .ToListAsync();
 
             var response = new
             {
@@ -166,6 +181,7 @@ namespace EVOwnerManagement.API.Controllers
                 station.PhoneNumber,
                 Location = new { station.Location.Latitude, station.Location.Longitude, station.Location.Address },
                 station.OperatingHours,
+                Operators = operatorDetails,
                 Slots = slots.Select(sl => new
                 {
                     id = sl.Id.ToString(),
@@ -174,12 +190,6 @@ namespace EVOwnerManagement.API.Controllers
                     sl.PowerRating,
                     sl.PricePerKWh,
                     Status = sl.SlotStatus.ToString()
-                }),
-                Operators = operators.Select(op => new
-                {
-                    id = op.Id.ToString(),
-                    op.Name,
-                    op.Email
                 })
             };
 
@@ -210,13 +220,42 @@ namespace EVOwnerManagement.API.Controllers
 
             // Delete all slots, operators, then station
             await _slots.DeleteManyAsync(sl => sl.StationId == stationId);
-            await _operators.DeleteManyAsync(op => op.StationId == stationId);
+            //await _operators.DeleteManyAsync(op => op.StationId == stationId);
             await _stations.DeleteOneAsync(s => s.Id == stationId);
 
             return Ok(new
             {
-                message = "Station and all associated slots and operators deleted successfully."
+                message = "Station and all associated slots deleted successfully."
             });
         }
+
+        //  GET - Get all Station Operators
+        [HttpGet("station-operators")]
+        public async Task<IActionResult> GetStationOperators()
+        {
+            // Fetch only active Station Operators
+            var operators = await _users
+                .Find(u => u.Role == UserRole.StationOperator && u.Status == UserStatus.Active)
+                .ToListAsync();
+
+            // Project directly to return separate names
+            var result = operators.Select(u => new
+            {
+                id = u.Id,
+                firstName = u.FirstName,
+                lastName = u.LastName,
+                u.Email,
+                u.PhoneNumber,
+                u.Address,
+                u.Status,
+                u.CreatedAt,
+                u.LastLogin,
+                u.ProfileImage
+            });
+
+            return Ok(result);
+        }
+
+
     }
 }
