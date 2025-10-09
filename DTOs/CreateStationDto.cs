@@ -31,14 +31,14 @@ namespace EVOwnerManagement.API.DTOs
         [Required]
         public string Status { get; set; }
 
-        //  Grouped slot input (used to auto-create slots)
+        //  Slot groups (for creating slots automatically)
         [Required]
         public List<SlotGroupDto> SlotGroups { get; set; }
 
-        //  One or more operators must be added when creating a station
+        //  Select existing operators (by their IDs)
         [Required]
-        [MinLength(1, ErrorMessage = "At least one operator must be created for this station.")]
-        public List<OperatorDto> Operators { get; set; }
+        [MinLength(1, ErrorMessage = "At least one operator must be selected for this station.")]
+        public List<string> OperatorIds { get; set; }
     }
 
     //  Used for grouped slot input
@@ -57,17 +57,4 @@ namespace EVOwnerManagement.API.DTOs
         public int Count { get; set; }
     }
 
-    //  Used to create station operators
-    public class OperatorDto
-    {
-        [Required]
-        public string Name { get; set; }
-
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
-
-        [Required]
-        public string Password { get; set; }
-    }
 }
