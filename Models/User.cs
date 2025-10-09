@@ -35,6 +35,9 @@ namespace EVOwnerManagement.API.Models
         [BsonRepresentation(BsonType.String)]
         public UserStatus Status { get; set; } = UserStatus.Active;
 
+        [BsonElement("stationId")]
+        public string? StationId { get; set; }
+
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

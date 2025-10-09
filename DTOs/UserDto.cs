@@ -14,6 +14,7 @@ namespace EVOwnerManagement.API.DTOs
         public DateTime? UpdatedAt { get; set; }
         public string? ProfileImage { get; set; }
         public DateTime? LastLogin { get; set; }
+        public string? StationId { get; set; }
     }
 }
 
