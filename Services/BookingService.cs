@@ -23,11 +23,13 @@ namespace EVOwnerManagement.API.Services
     {
         private readonly MongoDbContext _context;
         private readonly ILogger<BookingService> _logger;
+        private readonly IQRCodeService _qrCodeService;
 
-        public BookingService(MongoDbContext context, ILogger<BookingService> logger)
+        public BookingService(MongoDbContext context, ILogger<BookingService> logger, IQRCodeService qrCodeService)
         {
             _context = context;
             _logger = logger;
+            _qrCodeService = qrCodeService;
         }
 
         /// <summary>
@@ -85,7 +87,7 @@ namespace EVOwnerManagement.API.Services
                 TotalAmount = totalAmount,
                 PricePerKWh = slot.PricePerKWh,
                 EstimatedKWh = createDto.EstimatedKWh,
-                QrCode = GenerateQrCode(bookingNumber),
+                QrCode = null, // Will be generated after booking is created
                 Notes = createDto.Notes,
                 CreatedBy = createdBy,
                 CreatedAt = DateTime.UtcNow
@@ -99,6 +101,17 @@ namespace EVOwnerManagement.API.Services
             {
                 // Insert booking
                 await _context.Bookings.InsertOneAsync(session, booking);
+
+                // Generate QR code for the booking
+                var qrCodeBase64 = await _qrCodeService.GenerateQRCodeAsync(booking);
+                
+                // Update booking with QR code
+                var updateFilter = Builders<Booking>.Filter.Eq(b => b.Id, booking.Id);
+                var update = Builders<Booking>.Update.Set(b => b.QrCode, qrCodeBase64);
+                await _context.Bookings.UpdateOneAsync(session, updateFilter, update);
+                
+                // Update the booking object with the QR code
+                booking.QrCode = qrCodeBase64;
 
                 // Note: We don't update slot status to "Occupied" because slots can be booked
                 // for different time periods. Availability is checked based on time conflicts.
@@ -482,13 +495,13 @@ namespace EVOwnerManagement.API.Services
             return $"BK{today}{(count + 1):D4}";
         }
 
+
         /// <summary>
-        /// Generates a QR code for the booking
+        /// Validates a QR code and returns booking details if valid
         /// </summary>
-        private string GenerateQrCode(string bookingNumber)
+        public async Task<QRValidationResponseDto> ValidateQRCodeAsync(QRValidationRequestDto qrData)
         {
-            // Simple QR code generation - in production, use a proper QR code library
-            return $"QR_{bookingNumber}_{DateTime.UtcNow.Ticks}";
+            return await _qrCodeService.ValidateQRCodeAsync(qrData);
         }
 
         /// <summary>
