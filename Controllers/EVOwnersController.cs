@@ -12,7 +12,6 @@ namespace EVOwnerManagement.API.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Backoffice")]
     public class EVOwnersController : ControllerBase
     {
         private readonly IEVOwnerService _evOwnerService;
@@ -23,7 +22,6 @@ namespace EVOwnerManagement.API.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Backoffice")]
         public async Task<ActionResult<List<EVOwnerDto>>> GetAll()
         {
             try
@@ -38,7 +36,6 @@ namespace EVOwnerManagement.API.Controllers
         }
 
         [HttpGet("search")]
-        [Authorize(Roles = "Backoffice")]
         public async Task<ActionResult<List<EVOwnerDto>>> Search([FromQuery] string query)
         {
             try
@@ -53,7 +50,6 @@ namespace EVOwnerManagement.API.Controllers
         }
 
         [HttpGet("{nic}")]
-        [Authorize(Roles = "Backoffice")]
         public async Task<ActionResult<EVOwnerDto>> GetByNIC(string nic)
         {
             try
@@ -72,7 +68,6 @@ namespace EVOwnerManagement.API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Backoffice")]
         public async Task<ActionResult<EVOwnerDto>> Create([FromBody] CreateEVOwnerDto createDto)
         {
             try
@@ -96,7 +91,6 @@ namespace EVOwnerManagement.API.Controllers
         }
 
         [HttpPut("{nic}")]
-        [Authorize(Roles = "Backoffice")]
         public async Task<ActionResult<EVOwnerDto>> Update(string nic, [FromBody] UpdateEVOwnerDto updateDto)
         {
             try
@@ -120,7 +114,6 @@ namespace EVOwnerManagement.API.Controllers
         }
 
         [HttpDelete("{nic}")]
-        [Authorize(Roles = "Backoffice")]
         public async Task<ActionResult> Delete(string nic)
         {
             try
@@ -139,7 +132,6 @@ namespace EVOwnerManagement.API.Controllers
         }
 
         [HttpPatch("{nic}/toggle-active")]
-        [Authorize(Roles = "Backoffice")]
         public async Task<ActionResult> ToggleActive(string nic)
         {
             try
