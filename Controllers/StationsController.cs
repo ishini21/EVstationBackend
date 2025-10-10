@@ -6,6 +6,7 @@ using EVOwnerManagement.API.Utils; // for SlotValidator
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using System;
 using System.Threading.Tasks;
 
 namespace EVOwnerManagement.API.Controllers
@@ -254,6 +255,44 @@ namespace EVOwnerManagement.API.Controllers
             });
 
             return Ok(result);
+        }
+
+
+        // PUT - Update a station by ID (only selected fields)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateStation(string id, [FromBody] UpdateStationDto dto)
+        {
+            if (!ObjectId.TryParse(id, out ObjectId stationId))
+                return BadRequest("Invalid station ID format.");
+
+            var existingStation = await _stations.Find(s => s.Id == stationId).FirstOrDefaultAsync();
+            if (existingStation == null)
+                return NotFound("Station not found.");
+
+            var update = Builders<Station>.Update
+                .Set(s => s.StationName, dto.StationName)
+                .Set(s => s.Location, new Location
+                {
+                    Latitude = dto.Location.Latitude,
+                    Longitude = dto.Location.Longitude,
+                    Address = dto.Location.Address
+                })
+                .Set(s => s.StationType, dto.StationType)
+                .Set(s => s.PhoneNumber, dto.PhoneNumber)
+                .Set(s => s.OperatingHours, dto.OperatingHours)
+                .Set(s => s.Status, dto.Status)
+                .Set(s => s.UpdatedAt, DateTime.UtcNow);
+
+            var result = await _stations.UpdateOneAsync(s => s.Id == stationId, update);
+
+            if (result.ModifiedCount == 0)
+                return BadRequest("Station update failed or no changes detected.");
+
+            return Ok(new
+            {
+                message = "Station updated successfully.",
+                updatedAt = DateTime.UtcNow
+            });
         }
 
 
