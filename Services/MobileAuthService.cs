@@ -49,6 +49,7 @@ namespace EVOwnerManagement.API.Services
 
                     return new MobileLoginResponseDto
                     {
+                        UserId = user.Id,
                         Token = token,
                         FirstName = user.FirstName,
                         LastName = user.LastName,
@@ -85,6 +86,7 @@ namespace EVOwnerManagement.API.Services
 
                     return new MobileLoginResponseDto
                     {
+                        UserId = evOwner.Id!,
                         Token = token,
                         FirstName = evOwner.FirstName,
                         LastName = evOwner.LastName,

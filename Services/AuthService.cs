@@ -55,6 +55,7 @@ namespace EVOwnerManagement.API.Services
 
             return new LoginResponseDto
             {
+                UserId = user.Id,
                 Token = token,
                 FirstName = user.FirstName,
                 LastName = user.LastName,

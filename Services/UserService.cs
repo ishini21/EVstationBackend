@@ -112,6 +112,11 @@ namespace EVOwnerManagement.API.Services
             if (updateDto.Role.HasValue)
             {
                 updateDefinitions.Add(Builders<User>.Update.Set(u => u.Role, updateDto.Role.Value));
+                
+                if (updateDto.Role.Value == UserRole.Backoffice)
+                    {
+                        updateDefinitions.Add(Builders<User>.Update.Set(u => u.StationId, (string?)null));
+                    }
             }
 
             if (updateDto.ProfileImage != null)
