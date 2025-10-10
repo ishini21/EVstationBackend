@@ -12,6 +12,7 @@ namespace EVOwnerManagement.API.Services
         Task<EVOwnerDto?> UpdateAsync(string nic, UpdateEVOwnerDto updateDto);
         Task<bool> DeleteAsync(string nic);
         Task<bool> ToggleActiveStatusAsync(string nic);
+        Task<bool?> DeactivateAsync(string nic, string? performedBy = null);
         Task<List<EVOwnerDto>> SearchAsync(string query);
         Task<EVOwnerDto?> LoginAsync(string nic, string password);
     }

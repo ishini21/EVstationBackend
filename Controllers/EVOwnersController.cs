@@ -237,10 +237,14 @@ namespace EVOwnerManagement.API.Controllers
                     return Forbid("You can only deactivate your own account.");
                 }
 
-                var result = await _evOwnerService.ToggleActiveStatusAsync(nic);
-                if (!result)
+                var result = await _evOwnerService.DeactivateAsync(nic, currentUserNic);
+                if (result == null)
                 {
                     return NotFound($"EV Owner with NIC {nic} not found.");
+                }
+                if (result == false)
+                {
+                    return BadRequest("Account is already deactivated.");
                 }
 
                 return NoContent();
