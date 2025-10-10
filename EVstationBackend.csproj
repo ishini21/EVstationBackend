@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RazorLangVersion>9.0</RazorLangVersion>
     <NoWarn>$(NoWarn);CS8618;CS8604</NoWarn>
+    <UserSecretsId>1b5fcb80-9ffe-42b8-9cf1-7696f731616f</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
