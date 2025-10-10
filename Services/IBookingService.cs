@@ -103,6 +103,13 @@ namespace EVOwnerManagement.API.Services
         Task<QRValidationResponseDto> ValidateQRCodeAsync(QRValidationRequestDto qrData);
 
         /// <summary>
+        /// Gets bookings for a specific EV Owner
+        /// </summary>
+        /// <param name="evOwnerId">EV Owner ID</param>
+        /// <returns>List of bookings for the EV Owner</returns>
+        Task<BookingResponseDto> GetBookingsByEVOwnerAsync(string evOwnerId);
+
+        /// <summary>
         /// Debug method to get current station and slot IDs
         /// </summary>
         /// <returns>Current station and slot IDs for testing</returns>

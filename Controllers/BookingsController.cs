@@ -317,6 +317,34 @@ namespace EVOwnerManagement.API.Controllers
         }
 
         /// <summary>
+        /// Gets bookings for the authenticated EV Owner
+        /// </summary>
+        /// <returns>List of bookings for the authenticated EV Owner</returns>
+        [HttpGet("my-bookings")]
+        public async Task<IActionResult> GetMyBookings()
+        {
+            try
+            {
+                // Get user information from JWT token
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userRole = Enum.Parse<UserRole>(User.FindFirst(ClaimTypes.Role)?.Value ?? "StationOperator");
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized("User not authenticated");
+                }
+
+                var result = await _bookingService.GetBookingsByEVOwnerAsync(userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving EV Owner bookings");
+                return StatusCode(500, new { message = "An error occurred while retrieving bookings" });
+            }
+        }
+
+        /// <summary>
         /// Debug endpoint to get current station and slot IDs
         /// </summary>
         /// <returns>Current station and slot IDs for testing</returns>

@@ -514,6 +514,40 @@ namespace EVOwnerManagement.API.Services
         }
 
         /// <summary>
+        /// Gets bookings for a specific EV Owner
+        /// </summary>
+        public async Task<BookingResponseDto> GetBookingsByEVOwnerAsync(string evOwnerId)
+        {
+            // Filter bookings by EvOwnerId
+            var filter = Builders<Booking>.Filter.Eq(b => b.EvOwnerId, evOwnerId);
+
+            // Get total count
+            var totalCount = await _context.Bookings.CountDocumentsAsync(filter);
+
+            // Apply sorting (most recent first)
+            var sortDefinition = Builders<Booking>.Sort.Descending("CreatedAt");
+
+            // Get all bookings for this EV Owner (no pagination for mobile app simplicity)
+            var bookings = await _context.Bookings
+                .Find(filter)
+                .Sort(sortDefinition)
+                .ToListAsync();
+
+            var bookingDtos = bookings.Select(MapToDto).ToList();
+
+            return new BookingResponseDto
+            {
+                Bookings = bookingDtos,
+                TotalCount = (int)totalCount,
+                Page = 1,
+                PageSize = (int)totalCount,
+                TotalPages = 1,
+                HasNextPage = false,
+                HasPreviousPage = false
+            };
+        }
+
+        /// <summary>
         /// Debug method to get current station and slot IDs
         /// </summary>
         public async Task<object> GetStationsForDebugAsync()
