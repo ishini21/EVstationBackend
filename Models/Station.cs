@@ -1,3 +1,15 @@
+/*
+ * Course: SE4040 - Enterprise Application Development
+ * Assignment: EV Station Management System - Station Management
+ * Student: IT22071248 - PEIRIS M S M
+ * Created On : October 7, 2025
+ * File Name: Station.cs
+ * 
+ * This file contains the Station class, which represents an EV charging station entity.
+ * It defines properties for station details, location, operating hours, status, assigned operators,
+ * and timestamps for creation and updates. Used for MongoDB persistence and business logic.
+ */
+
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using System;

@@ -1,4 +1,12 @@
-﻿using MongoDB.Driver;
+﻿/************************************************************************************************
+* Filename:         EVOwnerService.cs
+* Course:           SE4040 - Enterprise Application Development
+* Assignment:       EV Station Management System - User Management
+* Student:          Akmeemana I S-IT22136060
+* Date:             10-Oct-2025
+*************************************************************************************************/
+
+using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using EVOwnerManagement.API.Models;
 using EVOwnerManagement.API.DTOs;
@@ -162,6 +170,30 @@ namespace EVOwnerManagement.API.Services
             }
 
             return MapToDto(owner);
+        }
+
+        public async Task<bool?> DeactivateAsync(string nic, string? performedBy = null)
+        {
+            var owner = await _context.EVOwners
+                .Find(o => o.NIC == nic)
+                .FirstOrDefaultAsync();
+
+            if (owner == null)
+                return null;
+
+            if (!owner.IsActive)
+                return false; 
+
+            var update = Builders<EVOwner>.Update
+                .Set(o => o.IsActive, false)
+                .Set(o => o.UpdatedAt, DateTime.UtcNow);
+
+            var result = await _context.EVOwners.UpdateOneAsync(
+                o => o.NIC == nic, update);
+
+            if (result.ModifiedCount == 0)
+                return false;
+            return true;
         }
 
         private static EVOwnerDto MapToDto(EVOwner owner)

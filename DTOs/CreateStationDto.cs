@@ -1,4 +1,16 @@
-﻿using EVOwnerManagement.API.Models;
+﻿/*
+ * Course: SE4040 - Enterprise Application Development
+ * Assignment: EV Station Management System - Station Management
+ * Student: IT22071248 - PEIRIS M S M
+ * Created On : October 7, 2025
+ * File Name: CreateStationDto.cs
+ * 
+ * This file contains the CreateStationDto and SlotGroupDto classes used for data transfer
+ * when creating a new EV station. It defines the structure and validation rules for
+ * station creation requests, including station details, slot groups, and operator assignments.
+ */
+
+using EVOwnerManagement.API.Models;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
