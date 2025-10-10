@@ -1,4 +1,15 @@
-using Microsoft.AspNetCore.Authorization;
+/* 
+ * Course: SE4040 - Enterprise Application Development
+ * Assignment: EV Station Management System - Station Management
+ * Student: IT22071248 - PEIRIS M S M 
+ * Created On : October 7, 2025
+ * File Name: StationsController.cs
+ * 
+ * This file contains the StationsController for handling HTTP requests related to station management.
+ * It provides RESTful API endpoints for creating, retrieving, updating, and deleting stations,
+ * as well as managing associated slots and station operators.
+ */
+
 using BCrypt.Net; // for password hashing
 using EVOwnerManagement.API.Data;   // for MongoDbContext
 using EVOwnerManagement.API.DTOs;
@@ -56,15 +67,18 @@ namespace EVOwnerManagement.API.Controllers
                 }
             }
 
-            // Validate operator IDs exist and are active station operators
+            //  Validate operator IDs exist, are active, and currently unassigned
             var validOperators = await _users
-                .Find(u => dto.OperatorIds.Contains(u.Id) &&
-                           u.Role == UserRole.StationOperator &&
-                           u.Status == UserStatus.Active)
+                .Find(u =>
+                    dto.OperatorIds.Contains(u.Id) &&
+                    u.Role == UserRole.StationOperator &&
+                    u.Status == UserStatus.Active &&
+                    (u.StationId == null || u.StationId == string.Empty)
+                )
                 .ToListAsync();
 
             if (validOperators.Count != dto.OperatorIds.Count)
-                return BadRequest("Some operator IDs are invalid or not active station operators.");
+                return BadRequest("Some operator IDs are invalid, inactive, or already assigned to another station.");
 
 
             // Create the station document
@@ -85,6 +99,11 @@ namespace EVOwnerManagement.API.Controllers
             };
 
             await _stations.InsertOneAsync(station);
+
+            // Assign the created StationId to the selected operators
+            var updateDefinition = Builders<User>.Update.Set(u => u.StationId, station.Id.ToString());
+            var operatorFilter = Builders<User>.Filter.In(u => u.Id, dto.OperatorIds);
+            await _users.UpdateManyAsync(operatorFilter, updateDefinition);
 
             // Generate slot documents
             int slotCounter = 1;
@@ -220,9 +239,13 @@ namespace EVOwnerManagement.API.Controllers
                 });
             }
 
-            // Delete all slots, operators, then station
+            // Remove station reference from all assigned operators
+            var operatorFilter = Builders<User>.Filter.Eq(u => u.StationId, station.Id.ToString());
+            var clearStationId = Builders<User>.Update.Set(u => u.StationId, null);
+            await _users.UpdateManyAsync(operatorFilter, clearStationId);
+
+            // Delete all slots and the station itself
             await _slots.DeleteManyAsync(sl => sl.StationId == stationId);
-            //await _operators.DeleteManyAsync(op => op.StationId == stationId);
             await _stations.DeleteOneAsync(s => s.Id == stationId);
 
             return Ok(new
@@ -231,16 +254,20 @@ namespace EVOwnerManagement.API.Controllers
             });
         }
 
-        //  GET - Get all Station Operators
+        //  GET - Get all active & unassigned Station Operators
         [HttpGet("station-operators")]
         public async Task<IActionResult> GetStationOperators()
         {
-            // Fetch only active Station Operators
+            // Filter: Only active Station Operators not assigned to any station
             var operators = await _users
-                .Find(u => u.Role == UserRole.StationOperator && u.Status == UserStatus.Active)
+                .Find(u =>
+                    u.Role == UserRole.StationOperator &&
+                    u.Status == UserStatus.Active &&
+                    (u.StationId == null || u.StationId == string.Empty)
+                )
                 .ToListAsync();
 
-            // Project directly to return separate names
+            // Project result with full details including StationId
             var result = operators.Select(u => new
             {
                 id = u.Id,
@@ -250,6 +277,7 @@ namespace EVOwnerManagement.API.Controllers
                 u.PhoneNumber,
                 u.Address,
                 u.Status,
+                u.StationId,     
                 u.CreatedAt,
                 u.LastLogin,
                 u.ProfileImage
@@ -296,6 +324,32 @@ namespace EVOwnerManagement.API.Controllers
             });
         }
 
+        //  GET - Get all Station Operators
+        [HttpGet("operators")]
+        public async Task<IActionResult> GetStationActiveOperators()
+        {
+            // Fetch only active Station Operators
+            var operators = await _users
+                .Find(u => u.Role == UserRole.StationOperator && u.Status == UserStatus.Active)
+                .ToListAsync();
 
+            // Project directly to return separate names
+            var result = operators.Select(u => new
+            {
+                id = u.Id,
+                firstName = u.FirstName,
+                lastName = u.LastName,
+                u.Email,
+                u.PhoneNumber,
+                u.Address,
+                u.Status,
+                u.StationId,
+                u.CreatedAt,
+                u.LastLogin,
+                u.ProfileImage
+            });
+
+            return Ok(result);
+        }
     }
 }
