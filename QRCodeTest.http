@@ -1,0 +1,48 @@
+### QR Code Generation and Validation Test
+### This file contains test requests for the QR code functionality
+
+### 1. Create a booking (this will generate a QR code)
+POST https://localhost:7000/api/Bookings
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+{
+  "customerNic": "123456789V",
+  "customerName": "John Doe",
+  "customerEmail": "john.doe@example.com",
+  "customerPhone": "+94771234567",
+  "stationId": "STATION_ID_HERE",
+  "slotId": "SLOT_ID_HERE",
+  "reservationStartTime": "2024-12-20T10:00:00Z",
+  "durationMinutes": 120,
+  "estimatedKWh": 25.5,
+  "notes": "Test booking for QR code generation"
+}
+
+### 2. Validate QR code (replace with actual booking data)
+POST https://localhost:7000/api/Bookings/validateQR
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+{
+  "bookingId": "BOOKING_ID_HERE",
+  "evOwnerNIC": "123456789V",
+  "stationId": "STATION_ID_HERE",
+  "reservationDate": "2024-12-20T10:00:00Z"
+}
+
+### 3. Get booking details to see QR code
+GET https://localhost:7000/api/Bookings/BOOKING_ID_HERE
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### 4. Test QR code validation with invalid data
+POST https://localhost:7000/api/Bookings/validateQR
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+{
+  "bookingId": "INVALID_BOOKING_ID",
+  "evOwnerNIC": "INVALID_NIC",
+  "stationId": "INVALID_STATION_ID",
+  "reservationDate": "2024-12-20T10:00:00Z"
+}

@@ -1,3 +1,16 @@
+/************************************************************************************************
+* Filename:         AuthController.cs
+* Course:           SE4040 - Enterprise Application Development
+* Assignment:       EV Station Management System - User Management
+* Student:          Wajee S (IT22094186)
+* Date:             10-Oct-2025
+*
+* Description:
+* This file contains the AuthController for handling all authentication-related HTTP requests.
+* It provides API endpoints for logging in web and mobile users, verifying JWT tokens,
+* and handling distinct login flows for different user roles.
+************************************************************************************************/
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using EVOwnerManagement.API.DTOs;
@@ -22,8 +35,8 @@ namespace EVOwnerManagement.API.Controllers
         private readonly MongoDbContext _context;
         private readonly IConfiguration _configuration;
 
-
-        public AuthController(IAuthService authService, IEVOwnerService evOwnerService, MongoDbContext context, IConfiguration configuration , IMobileAuthService mobileAuthService)
+        // Constructor: Injects required services using Dependency Injection.
+        public AuthController(IAuthService authService, IEVOwnerService evOwnerService, MongoDbContext context, IConfiguration configuration, IMobileAuthService mobileAuthService)
         {
             _authService = authService;
             _mobileAuthService = mobileAuthService;
@@ -38,33 +51,34 @@ namespace EVOwnerManagement.API.Controllers
         /// <returns>User information if token is valid</returns>
         [HttpGet("verify")]
         [Authorize]
+        // Method: Verifies the authenticity of the JWT token sent in the request header.
         public async Task<ActionResult<UserDto>> VerifyToken()
         {
             try
             {
-                // Get user ID from JWT token claims
+                // Get user ID from the 'sub' (subject) claim in the JWT token.
                 var userId = User.FindFirst("sub")?.Value;
-                
+
                 if (string.IsNullOrEmpty(userId))
                 {
-                    return Unauthorized(new { message = "Invalid token" });
+                    return Unauthorized(new { message = "Invalid token: User ID is missing." });
                 }
 
-                // Get user from database
+                // Retrieve the user from the database to ensure they still exist.
                 var user = await _context.Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
-                
+
                 if (user == null)
                 {
-                    return NotFound(new { message = "User not found" });
+                    return NotFound(new { message = "User not found." });
                 }
 
-                // Check if user is active
+                // Security Check: Ensure the user's account is currently active.
                 if (user.Status != UserStatus.Active)
                 {
-                    return Unauthorized(new { message = "User account is inactive" });
+                    return Unauthorized(new { message = "User account is inactive." });
                 }
 
-                // Return simplified user information (same as login response)
+                // Return a simplified user profile to the frontend.
                 var response = new
                 {
                     id = user.Id,
@@ -79,6 +93,7 @@ namespace EVOwnerManagement.API.Controllers
             }
             catch (Exception ex)
             {
+                // Handle any unexpected server errors.
                 return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
             }
         }
@@ -89,26 +104,30 @@ namespace EVOwnerManagement.API.Controllers
         /// <param name="loginDto">Login credentials</param>
         /// <returns>JWT token and user information</returns>
         [HttpPost("login")]
+        // Method: Handles login requests from the web application for system users.
         public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginDto loginDto)
         {
             try
             {
+                // Validate the incoming request body against the DTO's rules.
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
                 }
 
+                // Delegate the core login logic to the authentication service.
                 var response = await _authService.LoginAsync(loginDto);
-                
+
                 if (response == null)
                 {
-                    return Unauthorized(new { message = "Invalid email or password" });
+                    return Unauthorized(new { message = "Invalid email or password." });
                 }
 
                 return Ok(response);
             }
             catch (InvalidOperationException ex)
             {
+                // Catch specific exceptions from the service layer, like account status issues.
                 return Unauthorized(new { message = ex.Message });
             }
             catch (Exception ex)
@@ -123,6 +142,7 @@ namespace EVOwnerManagement.API.Controllers
         /// <param name="mobileLoginDto">Mobile login credentials (email or NIC + password)</param>
         /// <returns>JWT token and user information with role for UI routing</returns>
         [HttpPost("mobile-login")]
+        // Method: Provides a single login endpoint for the mobile application.
         public async Task<ActionResult<MobileLoginResponseDto>> MobileLogin([FromBody] MobileLoginDto mobileLoginDto)
         {
             try
@@ -132,8 +152,9 @@ namespace EVOwnerManagement.API.Controllers
                     return BadRequest(ModelState);
                 }
 
+                // Delegate to the mobile-specific authentication service.
                 var response = await _mobileAuthService.MobileLoginAsync(mobileLoginDto);
-                
+
                 if (response == null)
                 {
                     return Unauthorized(new { message = "Invalid credentials. Please check your email/NIC and password." });
@@ -157,6 +178,7 @@ namespace EVOwnerManagement.API.Controllers
         /// <param name="loginDto">EV Owner login credentials (NIC and Password)</param>
         /// <returns>JWT token and EV Owner information</returns>
         [HttpPost("evowner-login")]
+        // Method: Handles login requests specifically from EV Owners on the mobile app.
         public async Task<ActionResult> EVOwnerLogin([FromBody] EVOwnerLoginDto loginDto)
         {
             try
@@ -166,14 +188,15 @@ namespace EVOwnerManagement.API.Controllers
                     return BadRequest(ModelState);
                 }
 
+                // Use the EVOwner service to validate credentials.
                 var owner = await _evOwnerService.LoginAsync(loginDto.NIC, loginDto.Password);
-                
+
                 if (owner == null)
                 {
-                    return Unauthorized(new { message = "Invalid NIC or password" });
+                    return Unauthorized(new { message = "Invalid NIC or password." });
                 }
 
-                // Generate JWT token for EV Owner
+                // Generate a JWT token specifically for the EV Owner.
                 var token = GenerateEVOwnerJwtToken(owner.Id, owner.NIC);
                 var expiresAt = DateTime.UtcNow.AddHours(
                     double.Parse(_configuration["Jwt:ExpirationHours"] ?? "24")
@@ -181,7 +204,8 @@ namespace EVOwnerManagement.API.Controllers
 
                 var response = new
                 {
-                    token = token,
+                    userId = owner.Id,
+                    token,
                     owner = new
                     {
                         id = owner.Id,
@@ -192,7 +216,7 @@ namespace EVOwnerManagement.API.Controllers
                         phone = owner.Phone,
                         isActive = owner.IsActive
                     },
-                    expiresAt = expiresAt
+                    expiresAt
                 };
 
                 return Ok(response);
@@ -203,17 +227,21 @@ namespace EVOwnerManagement.API.Controllers
             }
         }
 
+        // Method: A private helper to generate a JWT for an EV Owner after successful login.
         private string GenerateEVOwnerJwtToken(string ownerId, string nic)
         {
+            // Load JWT settings from appsettings.json.
             var jwtSettings = _configuration.GetSection("Jwt");
             var secret = jwtSettings["Secret"] ?? throw new InvalidOperationException("JWT Secret is not configured");
             var issuer = jwtSettings["Issuer"] ?? "EVStationBackend";
             var audience = jwtSettings["Audience"] ?? "EVStationFrontend";
             var expirationHours = double.Parse(jwtSettings["ExpirationHours"] ?? "24");
 
+            // Create security key and signing credentials.
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
+            // Define the claims to be included in the token.
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, ownerId),
@@ -223,6 +251,7 @@ namespace EVOwnerManagement.API.Controllers
                 new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString())
             };
 
+            // Create the JWT token object.
             var token = new JwtSecurityToken(
                 issuer: issuer,
                 audience: audience,
@@ -231,8 +260,8 @@ namespace EVOwnerManagement.API.Controllers
                 signingCredentials: credentials
             );
 
+            // Serialize the token into a string.
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }
-

@@ -24,5 +24,8 @@ namespace EVOwnerManagement.API.Data
         public IMongoCollection<Station> Stations => _database.GetCollection<Station>("Stations");
         public IMongoCollection<Slot> Slots => _database.GetCollection<Slot>("Slots");
         public IMongoCollection<Operator> Operators => _database.GetCollection<Operator>("Operators");
+        
+        // Collections for Booking Management
+        public IMongoCollection<Booking> Bookings => _database.GetCollection<Booking>("Bookings");
     }
 }
