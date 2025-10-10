@@ -181,6 +181,7 @@ namespace EVOwnerManagement.API.Controllers
 
                 var response = new
                 {
+                    userId = owner.Id,
                     token = token,
                     owner = new
                     {
