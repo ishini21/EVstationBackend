@@ -22,6 +22,7 @@ namespace EVOwnerManagement.API.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class BookingsController : ControllerBase
     {
         private readonly IBookingService _bookingService;
