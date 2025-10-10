@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using BCrypt.Net; // for password hashing
 using EVOwnerManagement.API.Data;   // for MongoDbContext
 using EVOwnerManagement.API.DTOs;
@@ -43,7 +44,7 @@ namespace EVOwnerManagement.API.Controllers
             if (totalSlots != dto.NoOfSlots)
                 return BadRequest($"Slot groups total ({totalSlots}) does not match noOfSlots ({dto.NoOfSlots}).");
 
-            // Validate power–connector combination
+            // Validate powerï¿½connector combination
             foreach (var group in dto.SlotGroups)
             {
                 if (!SlotValidator.IsValidPowerCombination(group.ConnectorType, group.PowerRating))
