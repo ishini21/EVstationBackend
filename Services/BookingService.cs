@@ -23,11 +23,13 @@ namespace EVOwnerManagement.API.Services
     {
         private readonly MongoDbContext _context;
         private readonly ILogger<BookingService> _logger;
+        private readonly IQRCodeService _qrCodeService;
 
-        public BookingService(MongoDbContext context, ILogger<BookingService> logger)
+        public BookingService(MongoDbContext context, ILogger<BookingService> logger, IQRCodeService qrCodeService)
         {
             _context = context;
             _logger = logger;
+            _qrCodeService = qrCodeService;
         }
 
         /// <summary>
@@ -65,6 +67,14 @@ namespace EVOwnerManagement.API.Services
             var endTime = createDto.ReservationStartTime.AddMinutes(createDto.DurationMinutes);
             var totalAmount = (decimal)(createDto.EstimatedKWh * slot.PricePerKWh);
 
+            // Check if the creator is an EV Owner and set EvOwnerId accordingly
+            string? evOwnerId = null;
+            var evOwner = await _context.EVOwners.Find(e => e.Id == createdBy).FirstOrDefaultAsync();
+            if (evOwner != null)
+            {
+                evOwnerId = evOwner.Id;
+            }
+
             // Create booking
             var booking = new Booking
             {
@@ -74,6 +84,7 @@ namespace EVOwnerManagement.API.Services
                 CustomerName = createDto.CustomerName,
                 CustomerEmail = createDto.CustomerEmail,
                 CustomerPhone = createDto.CustomerPhone,
+                EvOwnerId = evOwnerId, // Set EvOwnerId if the creator is an EV Owner
                 StationId = createDto.StationId,
                 StationName = station.StationName,
                 SlotId = createDto.SlotId,
@@ -85,7 +96,7 @@ namespace EVOwnerManagement.API.Services
                 TotalAmount = totalAmount,
                 PricePerKWh = slot.PricePerKWh,
                 EstimatedKWh = createDto.EstimatedKWh,
-                QrCode = GenerateQrCode(bookingNumber),
+                QrCode = null, // Will be generated after booking is created
                 Notes = createDto.Notes,
                 CreatedBy = createdBy,
                 CreatedAt = DateTime.UtcNow
@@ -99,6 +110,17 @@ namespace EVOwnerManagement.API.Services
             {
                 // Insert booking
                 await _context.Bookings.InsertOneAsync(session, booking);
+
+                // Generate QR code for the booking
+                var qrCodeBase64 = await _qrCodeService.GenerateQRCodeAsync(booking);
+                
+                // Update booking with QR code
+                var updateFilter = Builders<Booking>.Filter.Eq(b => b.Id, booking.Id);
+                var update = Builders<Booking>.Update.Set(b => b.QrCode, qrCodeBase64);
+                await _context.Bookings.UpdateOneAsync(session, updateFilter, update);
+                
+                // Update the booking object with the QR code
+                booking.QrCode = qrCodeBase64;
 
                 // Note: We don't update slot status to "Occupied" because slots can be booked
                 // for different time periods. Availability is checked based on time conflicts.
@@ -482,13 +504,47 @@ namespace EVOwnerManagement.API.Services
             return $"BK{today}{(count + 1):D4}";
         }
 
+
         /// <summary>
-        /// Generates a QR code for the booking
+        /// Validates a QR code and returns booking details if valid
         /// </summary>
-        private string GenerateQrCode(string bookingNumber)
+        public async Task<QRValidationResponseDto> ValidateQRCodeAsync(QRValidationRequestDto qrData)
         {
-            // Simple QR code generation - in production, use a proper QR code library
-            return $"QR_{bookingNumber}_{DateTime.UtcNow.Ticks}";
+            return await _qrCodeService.ValidateQRCodeAsync(qrData);
+        }
+
+        /// <summary>
+        /// Gets bookings for a specific EV Owner
+        /// </summary>
+        public async Task<BookingResponseDto> GetBookingsByEVOwnerAsync(string evOwnerId)
+        {
+            // Filter bookings by EvOwnerId
+            var filter = Builders<Booking>.Filter.Eq(b => b.EvOwnerId, evOwnerId);
+
+            // Get total count
+            var totalCount = await _context.Bookings.CountDocumentsAsync(filter);
+
+            // Apply sorting (most recent first)
+            var sortDefinition = Builders<Booking>.Sort.Descending("CreatedAt");
+
+            // Get all bookings for this EV Owner (no pagination for mobile app simplicity)
+            var bookings = await _context.Bookings
+                .Find(filter)
+                .Sort(sortDefinition)
+                .ToListAsync();
+
+            var bookingDtos = bookings.Select(MapToDto).ToList();
+
+            return new BookingResponseDto
+            {
+                Bookings = bookingDtos,
+                TotalCount = (int)totalCount,
+                Page = 1,
+                PageSize = (int)totalCount,
+                TotalPages = 1,
+                HasNextPage = false,
+                HasPreviousPage = false
+            };
         }
 
         /// <summary>
@@ -525,6 +581,7 @@ namespace EVOwnerManagement.API.Services
                 CustomerName = booking.CustomerName,
                 CustomerEmail = booking.CustomerEmail,
                 CustomerPhone = booking.CustomerPhone,
+                EvOwnerId = booking.EvOwnerId,
                 StationId = booking.StationId,
                 StationName = booking.StationName,
                 SlotId = booking.SlotId,

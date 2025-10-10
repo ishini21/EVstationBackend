@@ -282,6 +282,69 @@ namespace EVOwnerManagement.API.Controllers
         }
 
         /// <summary>
+        /// Validates a QR code and returns booking details if valid
+        /// </summary>
+        /// <param name="qrData">QR code validation data</param>
+        /// <returns>Validation result with booking details</returns>
+        [HttpPost("validateQR")]
+        public async Task<IActionResult> ValidateQRCode([FromBody] QRValidationRequestDto qrData)
+        {
+            try
+            {
+                // Get user information from JWT token
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userRole = Enum.Parse<UserRole>(User.FindFirst(ClaimTypes.Role)?.Value ?? "StationOperator");
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized("User not authenticated");
+                }
+
+                // Only station operators can validate QR codes
+                if (userRole != UserRole.StationOperator)
+                {
+                    return Forbid("Only station operators can validate QR codes");
+                }
+
+                var result = await _bookingService.ValidateQRCodeAsync(qrData);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error validating QR code");
+                return StatusCode(500, new { message = "An error occurred while validating the QR code" });
+            }
+        }
+
+        /// <summary>
+        /// Gets bookings for the authenticated EV Owner
+        /// </summary>
+        /// <returns>List of bookings for the authenticated EV Owner</returns>
+        [HttpGet("my-bookings")]
+        public async Task<IActionResult> GetMyBookings()
+        {
+            try
+            {
+                // Get user information from JWT token
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userRole = Enum.Parse<UserRole>(User.FindFirst(ClaimTypes.Role)?.Value ?? "StationOperator");
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized("User not authenticated");
+                }
+
+                var result = await _bookingService.GetBookingsByEVOwnerAsync(userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving EV Owner bookings");
+                return StatusCode(500, new { message = "An error occurred while retrieving bookings" });
+            }
+        }
+
+        /// <summary>
         /// Debug endpoint to get current station and slot IDs
         /// </summary>
         /// <returns>Current station and slot IDs for testing</returns>

@@ -1,3 +1,16 @@
+/************************************************************************************************
+* Filename:         UsersController.cs
+* Course:           SE4040 - Enterprise Application Development
+* Assignment:       EV Station Management System - User Management
+* Student:          Wajee S (IT22094186)
+* Date:             10-Oct-2025
+*
+* Description:
+* This file contains the UsersController for handling HTTP requests related to system user
+* management (Backoffice and StationOperator). It provides RESTful API endpoints for CRUD
+* operations, accessible only by users with the Backoffice role.
+************************************************************************************************/
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EVOwnerManagement.API.DTOs;
@@ -16,6 +29,7 @@ namespace EVOwnerManagement.API.Controllers
     {
         private readonly IUserService _userService;
 
+        // Constructor: Injects the IUserService dependency to handle business logic.
         public UsersController(IUserService userService)
         {
             _userService = userService;
@@ -26,6 +40,7 @@ namespace EVOwnerManagement.API.Controllers
         /// </summary>
         /// <returns>List of all users</returns>
         [HttpGet]
+        // Method: Retrieves a list of all system users.
         public async Task<ActionResult<List<UserDto>>> GetAll()
         {
             try
@@ -45,6 +60,7 @@ namespace EVOwnerManagement.API.Controllers
         /// <param name="id">User ID</param>
         /// <returns>User information</returns>
         [HttpGet("{id}")]
+        // Method: Retrieves a single system user by their unique ID.
         public async Task<ActionResult<UserDto>> GetById(string id)
         {
             try
@@ -70,6 +86,7 @@ namespace EVOwnerManagement.API.Controllers
         /// <param name="createDto">User creation data</param>
         /// <returns>Created user information</returns>
         [HttpPost]
+        // Method: Creates a new system user based on the provided data.
         public async Task<ActionResult<UserDto>> Create([FromBody] CreateUserDto createDto)
         {
             try
@@ -100,6 +117,7 @@ namespace EVOwnerManagement.API.Controllers
         /// <param name="updateDto">User update data (password optional)</param>
         /// <returns>Updated user information</returns>
         [HttpPut("{id}")]
+        // Method: Updates an existing system user's information.
         public async Task<ActionResult<UserDto>> Update(string id, [FromBody] UpdateUserDto updateDto)
         {
             try
@@ -135,6 +153,7 @@ namespace EVOwnerManagement.API.Controllers
         /// <param name="resetPasswordDto">New password data</param>
         /// <returns>Success message</returns>
         [HttpPatch("{id}/reset-password")]
+        // Method: Resets the password for a specific system user.
         public async Task<ActionResult> ResetPassword(string id, [FromBody] ResetPasswordDto resetPasswordDto)
         {
             try
@@ -165,6 +184,7 @@ namespace EVOwnerManagement.API.Controllers
         /// <param name="id">User ID</param>
         /// <returns>No content</returns>
         [HttpPatch("{id}/deactivate")]
+        // Method: Deactivates a user's account, setting their status to Inactive.
         public async Task<ActionResult> Deactivate(string id)
         {
             try
@@ -190,6 +210,7 @@ namespace EVOwnerManagement.API.Controllers
         /// <param name="id">User ID</param>
         /// <returns>No content</returns>
         [HttpPatch("{id}/reactivate")]
+        // Method: Reactivates a user's account, setting their status to Active.
         public async Task<ActionResult> Reactivate(string id)
         {
             try
@@ -210,4 +231,3 @@ namespace EVOwnerManagement.API.Controllers
         }
     }
 }
-

@@ -96,6 +96,20 @@ namespace EVOwnerManagement.API.Services
         Task<(bool IsValid, string? ErrorMessage)> ValidateBookingCancellationAsync(string bookingId);
 
         /// <summary>
+        /// Validates a QR code and returns booking details if valid
+        /// </summary>
+        /// <param name="qrData">QR code validation data</param>
+        /// <returns>Validation result with booking details</returns>
+        Task<QRValidationResponseDto> ValidateQRCodeAsync(QRValidationRequestDto qrData);
+
+        /// <summary>
+        /// Gets bookings for a specific EV Owner
+        /// </summary>
+        /// <param name="evOwnerId">EV Owner ID</param>
+        /// <returns>List of bookings for the EV Owner</returns>
+        Task<BookingResponseDto> GetBookingsByEVOwnerAsync(string evOwnerId);
+
+        /// <summary>
         /// Debug method to get current station and slot IDs
         /// </summary>
         /// <returns>Current station and slot IDs for testing</returns>
