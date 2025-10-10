@@ -6,10 +6,7 @@ using EVOwnerManagement.API.Models;
 
 namespace EVOwnerManagement.API.Controllers
 {
-    /// <summary>
-    /// EV Owner Management Controller - BACKOFFICE ONLY
-    /// Handles EV owner CRUD operations, only accessible by Backoffice users
-    /// </summary>
+   
     [ApiController]
     [Route("api/[controller]")]
     [Authorize(Roles = "Backoffice")]
@@ -137,6 +134,131 @@ namespace EVOwnerManagement.API.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+
+        
+        [HttpPost("self-register")]
+        [AllowAnonymous]
+        public async Task<ActionResult<EVOwnerDto>> SelfRegister([FromBody] CreateEVOwnerDto createDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var owner = await _evOwnerService.CreateAsync(createDto);
+                return CreatedAtAction(nameof(GetByNIC), new { nic = owner.NIC }, owner);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+        [HttpGet("profile/{nic}")]
+        [Authorize] 
+        public async Task<ActionResult<EVOwnerDto>> GetProfile(string nic)
+        {
+            try
+            {
+                
+                var currentUserNic = User.FindFirst("nic")?.Value ??
+                                   User.FindFirst("sub")?.Value ??
+                                   User.Identity?.Name;
+
+                
+                if (!string.IsNullOrEmpty(currentUserNic) && currentUserNic != nic)
+                {
+                    return Forbid("You can only access your own profile.");
+                }
+
+                var owner = await _evOwnerService.GetByNICAsync(nic);
+                if (owner == null)
+                {
+                    return NotFound($"EV Owner with NIC {nic} not found.");
+                }
+
+                return Ok(owner);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        
+        [HttpPut("profile/{nic}")]
+        [Authorize] 
+        public async Task<ActionResult<EVOwnerDto>> UpdateProfile(string nic, [FromBody] UpdateEVOwnerDto updateDto)
+        {
+            try
+            {
+                
+                var currentUserNic = User.FindFirst("nic")?.Value ??
+                                   User.FindFirst("sub")?.Value ??
+                                   User.Identity?.Name;
+
+                
+                if (!string.IsNullOrEmpty(currentUserNic) && currentUserNic != nic)
+                {
+                    return Forbid("You can only update your own profile.");
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var owner = await _evOwnerService.UpdateAsync(nic, updateDto);
+                if (owner == null)
+                {
+                    return NotFound($"EV Owner with NIC {nic} not found.");
+                }
+
+                return Ok(owner);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+       
+        [HttpPatch("profile/{nic}/deactivate")]
+        [Authorize]
+        public async Task<ActionResult> DeactivateAccount(string nic)
+        {
+            try
+            {
+                
+                var currentUserNic = User.FindFirst("nic")?.Value ??
+                                   User.FindFirst("sub")?.Value ??
+                                   User.Identity?.Name;
+
+               
+                if (!string.IsNullOrEmpty(currentUserNic) && currentUserNic != nic)
+                {
+                    return Forbid("You can only deactivate your own account.");
+                }
+
+                var result = await _evOwnerService.ToggleActiveStatusAsync(nic);
+                if (!result)
+                {
+                    return NotFound($"EV Owner with NIC {nic} not found.");
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+
 
         [HttpPatch("{nic}/toggle-active")]
         [Authorize(Roles = "Backoffice")]
