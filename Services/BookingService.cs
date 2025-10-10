@@ -67,6 +67,14 @@ namespace EVOwnerManagement.API.Services
             var endTime = createDto.ReservationStartTime.AddMinutes(createDto.DurationMinutes);
             var totalAmount = (decimal)(createDto.EstimatedKWh * slot.PricePerKWh);
 
+            // Check if the creator is an EV Owner and set EvOwnerId accordingly
+            string? evOwnerId = null;
+            var evOwner = await _context.EVOwners.Find(e => e.Id == createdBy).FirstOrDefaultAsync();
+            if (evOwner != null)
+            {
+                evOwnerId = evOwner.Id;
+            }
+
             // Create booking
             var booking = new Booking
             {
@@ -76,6 +84,7 @@ namespace EVOwnerManagement.API.Services
                 CustomerName = createDto.CustomerName,
                 CustomerEmail = createDto.CustomerEmail,
                 CustomerPhone = createDto.CustomerPhone,
+                EvOwnerId = evOwnerId, // Set EvOwnerId if the creator is an EV Owner
                 StationId = createDto.StationId,
                 StationName = station.StationName,
                 SlotId = createDto.SlotId,
@@ -538,6 +547,7 @@ namespace EVOwnerManagement.API.Services
                 CustomerName = booking.CustomerName,
                 CustomerEmail = booking.CustomerEmail,
                 CustomerPhone = booking.CustomerPhone,
+                EvOwnerId = booking.EvOwnerId,
                 StationId = booking.StationId,
                 StationName = booking.StationName,
                 SlotId = booking.SlotId,
