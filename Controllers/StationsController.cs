@@ -1,3 +1,15 @@
+/* 
+ * Course: SE4040 - Enterprise Application Development
+ * Assignment: EV Station Management System - Station Management
+ * Student: IT22071248 - PEIRIS M S M 
+ * Created On : October 7, 2025
+ * File Name: StationsController.cs
+ * 
+ * This file contains the StationsController for handling HTTP requests related to station management.
+ * It provides RESTful API endpoints for creating, retrieving, updating, and deleting stations,
+ * as well as managing associated slots and station operators.
+ */
+
 using BCrypt.Net; // for password hashing
 using EVOwnerManagement.API.Data;   // for MongoDbContext
 using EVOwnerManagement.API.DTOs;

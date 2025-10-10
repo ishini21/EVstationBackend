@@ -1,4 +1,16 @@
-﻿using MongoDB.Bson;
+﻿/*
+ * Course: SE4040 - Enterprise Application Development
+ * Assignment: EV Station Management System - Station Management
+ * Student: IT22071248 - PEIRIS M S M
+ * Created On : October 7, 2025
+ * File Name: Slot.cs
+ * 
+ * This file contains the Slot class, which represents an individual charging slot within a station.
+ * It defines properties for slot identification, connector type, power rating, pricing, status,
+ * and association with a specific station.
+ */
+
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using System;
 
