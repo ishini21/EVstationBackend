@@ -14,7 +14,7 @@ namespace EVOwnerManagement.API.Data
 
             var connectionString = _configuration.GetConnectionString("MongoDB");
             var client = new MongoClient(connectionString);
-            _database = client.GetDatabase("EVOwnerManagementDB");
+            _database = client.GetDatabase("EVManagmentDB");
         }
 
         public IMongoCollection<EVOwner> EVOwners => _database.GetCollection<EVOwner>("EVOwners");
