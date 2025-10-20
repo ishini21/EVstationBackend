@@ -47,7 +47,7 @@ namespace EVOwnerManagement.API.Controllers
 			if (station == null)
 				return NotFound("Station not found.");
 
-			// Validate power–connector combination
+			// Validate powerï¿½connector combination
 			if (!SlotValidator.IsValidPowerCombination(dto.ConnectorType, dto.PowerRating))
 			{
 				return BadRequest(new
@@ -76,6 +76,13 @@ namespace EVOwnerManagement.API.Controllers
 
 			await _slots.InsertOneAsync(newSlot);
 
+			// Increment NoOfSlots in the station
+			var stationUpdateDef = Builders<Station>.Update
+				.Inc(s => s.NoOfSlots, 1)
+				.Set(s => s.UpdatedAt, DateTime.UtcNow);
+			
+			await _stations.UpdateOneAsync(s => s.Id == stationObjectId, stationUpdateDef);
+
 			return Ok(new
 			{
 				message = "Slot created successfully.",
@@ -95,7 +102,7 @@ namespace EVOwnerManagement.API.Controllers
 			if (existingSlot == null)
 				return NotFound("Slot not found.");
 
-			// Validate power–connector combination
+			// Validate powerï¿½connector combination
 			if (!SlotValidator.IsValidPowerCombination(dto.ConnectorType, dto.PowerRating))
 			{
 				return BadRequest(new

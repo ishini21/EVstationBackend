@@ -241,7 +241,9 @@ namespace EVOwnerManagement.API.Controllers
 
             // Remove station reference from all assigned operators
             var operatorFilter = Builders<User>.Filter.Eq(u => u.StationId, station.Id.ToString());
-            var clearStationId = Builders<User>.Update.Set(u => u.StationId, null);
+            var clearStationId = Builders<User>.Update
+                .Set(u => u.StationId, null)
+                .Set(u => u.UpdatedAt, DateTime.UtcNow);
             await _users.UpdateManyAsync(operatorFilter, clearStationId);
 
             // Delete all slots and the station itself
@@ -350,6 +352,106 @@ namespace EVOwnerManagement.API.Controllers
             });
 
             return Ok(result);
+        }
+
+        // POST - Add operators to an existing station
+        [HttpPost("{stationId}/operators")]
+        public async Task<IActionResult> AddOperatorsToStation(string stationId, [FromBody] List<string> operatorIds)
+        {
+            if (!ObjectId.TryParse(stationId, out ObjectId stationObjectId))
+                return BadRequest("Invalid station ID format.");
+
+            // Check if station exists
+            var station = await _stations.Find(s => s.Id == stationObjectId).FirstOrDefaultAsync();
+            if (station == null)
+                return NotFound("Station not found.");
+
+            // Validate input
+            if (operatorIds == null || operatorIds.Count < 1)
+                return BadRequest("At least one operator must be selected.");
+
+            // Validate operator IDs exist, are active, and currently unassigned
+            var validOperators = await _users
+                .Find(u =>
+                    operatorIds.Contains(u.Id) &&
+                    u.Role == UserRole.StationOperator &&
+                    u.Status == UserStatus.Active &&
+                    (u.StationId == null || u.StationId == string.Empty)
+                )
+                .ToListAsync();
+
+            if (validOperators.Count != operatorIds.Count)
+                return BadRequest("Some operator IDs are invalid, inactive, or already assigned to another station.");
+
+            // Add new operators to the station's operator list
+            var updatedOperatorIds = station.OperatorIds.Concat(operatorIds).ToList();
+            
+            var stationUpdateDef = Builders<Station>.Update
+                .Set(s => s.OperatorIds, updatedOperatorIds)
+                .Set(s => s.UpdatedAt, DateTime.UtcNow);
+
+            await _stations.UpdateOneAsync(s => s.Id == stationObjectId, stationUpdateDef);
+
+            // Assign the StationId to the selected operators
+            var operatorUpdateDef = Builders<User>.Update.Set(u => u.StationId, station.Id.ToString());
+            var operatorFilter = Builders<User>.Filter.In(u => u.Id, operatorIds);
+            await _users.UpdateManyAsync(operatorFilter, operatorUpdateDef);
+
+            return Ok(new
+            {
+                message = "Operators added to station successfully.",
+                stationId = station.Id.ToString(),
+                operatorsAdded = validOperators.Count,
+                totalOperators = updatedOperatorIds.Count
+            });
+        }
+
+        // DELETE - Remove operator from station
+        [HttpDelete("{stationId}/operators/{operatorId}")]
+        public async Task<IActionResult> RemoveOperatorFromStation(string stationId, string operatorId)
+        {
+            if (!ObjectId.TryParse(stationId, out ObjectId stationObjectId))
+                return BadRequest("Invalid station ID format.");
+
+            if (!ObjectId.TryParse(operatorId, out ObjectId operatorObjectId))
+                return BadRequest("Invalid operator ID format.");
+
+            // Check if station exists
+            var station = await _stations.Find(s => s.Id == stationObjectId).FirstOrDefaultAsync();
+            if (station == null)
+                return NotFound("Station not found.");
+
+            // Check if operator exists and is assigned to this station
+            var operatorUser = await _users.Find(u => u.Id == operatorId).FirstOrDefaultAsync();
+            if (operatorUser == null)
+                return NotFound("Operator not found.");
+
+            if (operatorUser.StationId != station.Id.ToString())
+                return BadRequest("Operator is not assigned to this station.");
+
+            // Remove operator from station's operator list
+            var updatedOperatorIds = station.OperatorIds.Where(id => id != operatorId).ToList();
+            
+            var stationUpdateDef = Builders<Station>.Update
+                .Set(s => s.OperatorIds, updatedOperatorIds)
+                .Set(s => s.UpdatedAt, DateTime.UtcNow);
+
+            await _stations.UpdateOneAsync(s => s.Id == stationObjectId, stationUpdateDef);
+
+            // Set operator's StationId to null
+            var operatorUpdateDef = Builders<User>.Update
+                .Set(u => u.StationId, null)
+                .Set(u => u.UpdatedAt, DateTime.UtcNow);
+
+            await _users.UpdateOneAsync(u => u.Id == operatorId, operatorUpdateDef);
+
+            return Ok(new
+            {
+                message = "Operator removed from station successfully.",
+                stationId = station.Id.ToString(),
+                operatorId = operatorId,
+                remainingOperators = updatedOperatorIds.Count
+            });
         }
     }
 }
